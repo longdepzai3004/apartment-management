@@ -1,8 +1,5 @@
 package vn.io.nghlong3004.apartment_management.controller;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -20,6 +17,8 @@ import vn.io.nghlong3004.apartment_management.constant.ErrorMessageConstant;
 import vn.io.nghlong3004.apartment_management.exception.ResourceException;
 import vn.io.nghlong3004.apartment_management.model.dto.UserDto;
 import vn.io.nghlong3004.apartment_management.service.UserService;
+
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -128,5 +127,28 @@ class UserControllerTest {
 		Assertions.assertNull(result.getEmail());
 		Assertions.assertNull(result.getFirstName());
 	}
+
+    @Test
+    @DisplayName("DELETE /api/v1/user/{id} -> should delegate to service and return OK")
+    void deleteUser_ShouldDelegateToService() {
+        Long userId = 1L;
+
+        doNothing().when(mockUserService).delete(userId);
+
+        userController.delete(userId);
+
+        verify(mockUserService).delete(userId);
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/user/{id} -> should propagate exception from service")
+    void deleteUser_ShouldPropagateException() {
+        Long userId = 404L;
+
+        doThrow(new ResourceException(HttpStatus.NOT_FOUND, ErrorMessageConstant.ENDPOINT_NOT_FOUND))
+                .when(mockUserService).delete(userId);
+
+        Assertions.assertThrows(ResourceException.class, () -> userController.delete(userId));
+    }
 
 }

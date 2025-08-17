@@ -31,10 +31,9 @@ class UserRepositoryTest {
 	private final int maxTestCaseAll = 10;
 
 	private User createSampleUser(String username) {
-		User user = User.builder().firstName("Long").lastName("Nguyen").email(username + "@example.com")
-				.password("matkhaune!A@1234").phoneNumber("0987654321").role(Role.USER).status(UserStatus.ACTIVE)
-				.floor(null).build();
-		return user;
+		return User.builder().firstName("Long").lastName("Nguyen").email(username + "@example.com")
+                .password("matkhaune!A@1234").phoneNumber("0987654321").role(Role.USER).status(UserStatus.ACTIVE)
+                .floor(null ).build();
 	}
 
 	@Test
@@ -186,5 +185,38 @@ class UserRepositoryTest {
 			Assertions.assertThat(after.getUpdated()).isNotNull();
 		}
 	}
+
+    @Test
+    @DisplayName("Method: delete(id) -> removes existing user row")
+    void delete_WhenIdExists_ShouldRemoveRow() {
+        String username = "u" + UUID.randomUUID();
+        User u = createSampleUser(username);
+
+        userRepository.save(u);
+        Long id = userRepository.findByEmail(u.getEmail()).orElseThrow().getId();
+
+        Assertions.assertThat(userRepository.findById(id)).isPresent();
+
+        userRepository.delete(id);
+
+        Assertions.assertThat(userRepository.findById(id)).isEmpty();
+        Optional<User> byEmail = userRepository.findByEmail(u.getEmail());
+        Assertions.assertThat(byEmail).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Method: delete(id) -> no-op when id does not exist")
+    void delete_WhenIdNotExists_ShouldBeNoOp() {
+        String username = "u" + UUID.randomUUID();
+        User u = createSampleUser(username);
+
+        userRepository.save(u);
+        Long existingId = userRepository.findByEmail(u.getEmail()).orElseThrow().getId();
+
+        userRepository.delete(-999999L);
+
+        Assertions.assertThat(userRepository.findById(existingId)).isPresent();
+        Assertions.assertThat(userRepository.findByEmail(u.getEmail())).isPresent();
+    }
 
 }

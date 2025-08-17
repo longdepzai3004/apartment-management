@@ -84,7 +84,7 @@ class UserServiceImplTest {
 	}
 
 	@BeforeEach
-	private void setup() throws Exception {
+    public void setup() throws Exception {
 		Field f = UserServiceImpl.class.getDeclaredField("refreshTokenExpirationMs");
 		f.setAccessible(true);
 		f.set(userServiceImpl, 7L * 24 * 60 * 60 * 1000);
@@ -368,4 +368,33 @@ class UserServiceImplTest {
 		Assertions.assertEquals(7200000L / 1000, cookie.getMaxAge().getSeconds());
 		Assertions.assertEquals("Strict", cookie.getSameSite());
 	}
+    @Test
+    @DisplayName("Method: delete -> should call validator then repository.delete when allowed")
+    void delete_WhenAllowed_ShouldCallRepositoryDelete() {
+        Long id = 42L;
+
+        Mockito.doNothing().when(mockUserServiceValidator).ensureCanDeleteUser(id);
+        Mockito.doNothing().when(mockUserRepository).delete(id);
+
+        userServiceImpl.delete(id);
+
+        verify(mockUserServiceValidator).ensureCanDeleteUser(id);
+        verify(mockUserRepository).delete(id);
+    }
+
+    @Test
+    @DisplayName("Method: delete -> should propagate exception and not call repository when validator blocks")
+    void delete_WhenValidatorBlocks_ShouldThrow() {
+        Long id = 99L;
+
+        Mockito.doThrow(new ResourceException(HttpStatus.FORBIDDEN, ErrorMessageConstant.FORBIDDEN))
+                .when(mockUserServiceValidator).ensureCanDeleteUser(id);
+
+        ResourceException ex = Assertions.assertThrows(ResourceException.class, () -> userServiceImpl.delete(id));
+        Assertions.assertEquals(ErrorMessageConstant.FORBIDDEN, ex.getMessage());
+
+        Mockito.verifyNoInteractions(mockUserRepository);
+    }
+
+
 }
